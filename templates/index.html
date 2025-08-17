@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brain Segmentation Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #f7fafd 0%, #eaf6fb 100%);
+      color: #232357;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1300px;
+      margin: 40px auto 36px auto;
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 7px 32px #e3e9fa99;
+      padding: 38px 38px 24px 38px;
+    }
+    .header-section {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .header-section h1 {
+      font-size: 2.9rem;
+      color: #3217AA;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      margin-bottom: 14px;
+    }
+    .header-section p {
+      color: #43435e;
+      font-size: 1.22rem;
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    .file-upload-row {
+      display: flex; justify-content: center; align-items: center; margin-bottom: 28px; gap:22px;
+    }
+    .file-upload-label {
+      background: #3217aa;
+      color: #fff;
+      padding: 16px 40px;
+      border-radius: 16px;
+      font-weight: 600;
+      font-size: 1.17rem;
+      cursor: pointer;
+      box-shadow: 0 2px 15px #e0eaff42;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      border: none;
+    }
+    .file-status {
+      color: #444; font-size: 1.09rem; margin-left:15px; font-weight: 600;
+    }
+    input[type="file"] { display: none; }
+
+    .method-panels-row {
+      display: flex; gap: 38px; justify-content: center; margin-bottom: 34px;
+    }
+    .panel {
+      flex: 1; border-radius: 18px; padding: 30px 28px; box-shadow: 0 2px 12px #e6eefc63; background:#f3f4fb;
+      display: flex; flex-direction: column; align-items: center;
+      min-width: 260px;
+    }
+    .panel.ai { background:#f5edff; box-shadow:0 2px 12px #ecd4ffc6; }
+    .panel-title {
+      font-size: 1.33rem; color:#245ccb; margin-bottom: 20px; font-weight:700; display:flex; gap:8px; align-items:center;
+    }
+    .panel-title.ai { color:#6b20c6; }
+    .panel form { width:100%; }
+    .panel-btn {
+      background: #31b843; color: #fff;
+      font-size: 1.13rem; padding:15px 0; border-radius:11px; border:none;
+      font-weight:700; cursor:pointer; display:flex; align-items:center;
+      gap:10px; box-shadow: 0 2px 8px #cffdcf; width:100%; margin-bottom:19px; transition:transform 0.09s;
+    }
+    .panel-btn.otsu { background:#ef7135; box-shadow:0 2px 8px #ffdedd;}
+    .panel-btn.unet { background:#6b20c6; box-shadow:0 2px 8px #e5d4ff;}
+    .panel-btn:hover { opacity:0.97; transform:scale(1.04);}
+    @media (max-width:950px) {
+      .method-panels-row { flex-direction:column; gap:18px; }
+      .panel { min-width:unset;}
+    }
+
+    .metrics-table {
+      width:97%; margin:40px auto 27px auto;
+      border-collapse:collapse; border-radius:13px; overflow:hidden; background:#f9fbfd;
+      box-shadow:0 1px 7px #e6e9f2bb;
+    }
+    th, td { padding: 11px; border: 1px solid #d7dde5; text-align: center; }
+    th { background: #3217AA; color:#fff; font-size:1.02em; }
+    .highlighted-row { background:#e9ffe9; font-weight: 600;}
+    .highlighted-row.ai { background:#f5edff;}
+    .highlighted-row.otsu { background:#fff5e9;}
+    .metrics-time { text-align:center; font-size:1.13em; margin:0 0 4px 0;}
+
+    .results-area { display:flex; justify-content:space-between; gap:32px; margin-top:40px; }
+    .result-card {
+      flex:1; background:#f6fafb;
+      border-radius:15px; box-shadow: 0 1px 7px #e5eefd55;
+      text-align:center; padding:25px 5px; min-width:260px;
+    }
+    .result-card h2 { font-size:1.21rem; margin:12px 0 11px 0; color: #283164; }
+    .result-card img {
+      width:90%; max-width:280px; border-radius:12px; margin-bottom:8px; box-shadow:0 2px 12px #e6eafd32;
+      border: 2px solid #e9eefb;
+    }
+    @media (max-width:950px) {
+      .results-area { flex-direction:column; gap:18px; }
+      .result-card { min-width:unset;}
+    }
+
+    .table-comparison h2 {margin-top:38px;}
+    .final-table { width:98%; margin-bottom:16px;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header-section">
+      <h1>🧠 Brain Segmentation Dashboard</h1>
+      <p>
+        Instantly compare classical and AI-based tumor detection with overlays and objective metrics.<br>
+        Upload a brain scan and select a segmentation method.
+      </p>
+    </div>
+
+{% if message %}
+  <div style="text-align:center; margin-bottom:15px;">
+    <span style="color:#d1003f; font-weight:600; font-size:1.13em; background:#ffe9ed; padding:8px 20px; border-radius:7px; display:inline-block;">
+      {{ message }}
+    </span>
+  </div>
+{% endif %}
+
+    <div class="file-upload-row">
+      <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" id="file-upload" onchange="this.form.submit()" />
+        <label for="file-upload" class="file-upload-label">
+          <span style="font-size:1.6em;">&#128190;</span> Choose Image
+        </label>
+        <span class="file-status">
+          {% if filename %}{{ filename }}{% else %}No file chosen{% endif %}
+        </span>
+      </form>
+    </div>
+
+    <div class="method-panels-row">
+      <div class="panel">
+        <div class="panel-title"><span style="font-size:1.28em;">&#128209;</span> Classical Methods</div>
+        <form method="POST">
+          <input type="hidden" name="filename" value="{{ filename }}">
+          <button class="panel-btn" type="submit" name="method" value="canny"><span>&#128269;</span> Canny Edge Detection</button>
+          <button class="panel-btn otsu" type="submit" name="method" value="otsu"><span>&#128273;</span> Otsu Thresholding</button>
+        </form>
+      </div>
+      <div class="panel ai">
+        <div class="panel-title ai"><span style="font-size:1.28em;">&#129302;</span> AI-Based Method</div>
+        <form method="POST">
+          <input type="hidden" name="filename" value="{{ filename }}">
+          <button class="panel-btn unet" type="submit" name="method" value="unet"><span>&#129302;</span> U-Net (AI Segmentation)</button>
+        </form>
+      </div>
+    </div>
+
+    {% if method %}
+    <h2 style="margin-top:32px; font-size:1.19rem;">Efficiency, Cost & Trade-Offs</h2>
+    <table class="metrics-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Efficiency</th>
+          <th>Avg. Computational Cost</th>
+          <th>Accuracy vs. Speed Trade-off</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="{% if method == 'canny' %}highlighted-row{% endif %}">
+          <td>Canny Edge</td>
+          <td>High (Fast, lightweight)</td>
+          <td>Low</td>
+          <td>Very fast, low accuracy</td>
+        </tr>
+        <tr class="{% if method == 'otsu' %}highlighted-row otsu{% endif %}">
+          <td>Otsu Threshold</td>
+          <td>Medium</td>
+          <td>Low-Medium</td>
+          <td>Fast, medium accuracy</td>
+        </tr>
+        <tr class="{% if method == 'unet' %}highlighted-row ai{% endif %}">
+          <td>U-Net (AI)</td>
+          <td>Medium</td>
+          <td>High (Deep CNN, GPU recommended)</td>
+          <td>Slower, high accuracy</td>
+        </tr>
+      </tbody>
+    </table>
+    {% endif %}
+    {% if elapsed_time %}
+      <div class="metrics-time"><b>Computation time:</b> {{ elapsed_time | round(3) }} seconds</div>
+    {% endif %}
+
+    <div class="results-area">
+      <div class="result-card">
+        <h2>Uploaded Image</h2>
+        {% if filename %}
+          <img src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Uploaded Image" />
+        {% else %}
+          <p>No image uploaded yet.</p>
+        {% endif %}
+      </div>
+      <div class="result-card">
+        <h2>Segmentation Result</h2>
+        {% if result_image %}
+          <img src="{{ url_for('static', filename='uploads/' + result_image) }}" alt="Segmentation Result" />
+        {% else %}
+          <p>No segmentation result yet.</p>
+        {% endif %}
+      </div>
+      <div class="result-card">
+        <h2>Segmentation Overlay</h2>
+        {% if overlay_image %}
+          <img src="{{ url_for('static', filename='uploads/' + overlay_image) }}" alt="Segmentation Overlay" />
+        {% else %}
+          <p>No overlay available yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="table-comparison">
+      <h2 style="margin-top:44px; font-size:1.15rem;">Method Comparison Table</h2>
+      <table class="final-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Accuracy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Canny Edge</td>
+            <td>Classical</td>
+            <td>Finds boundaries and outlines anatomical structures.</td>
+            <td>Low (edges, not region)</td>
+          </tr>
+          <tr>
+            <td>Otsu Threshold</td>
+            <td>Classical</td>
+            <td>Threshold-based region segmentation, may include artifacts.</td>
+            <td>Medium</td>
+          </tr>
+          <tr>
+            <td>U-Net (AI)</td>
+            <td>Deep Learning</td>
+            <td>Automatically learns tumor region. Most specific.</td>
+            <td>High</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
